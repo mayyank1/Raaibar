@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import {View , Text , StyleSheet , TextInput,TouchableOpacity} from 'react-native';
+import {View , Text , StyleSheet , TextInput, TouchableOpacity, Alert} from 'react-native';
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }: any) => {
     const [username , setUsername] = useState('');
     const [password , setPassword] = useState('');
     
     const handleLogin = () => {
-        console.log("Username: ",username);
-        console.log("Password: ",password);
+        if(username.length === 0 || password.length === 0){
+            Alert.alert('Error', 'Please fill in both fields');
+            return;
+        }
+
+        // To-Do: "Fake" Authentication Logic
+        // Later we will check this against a server. 
+        // For now, any non-empty input is success.
+
+        navigation.replace('Home', {username}); // Pass username to HomeScreen
     }
 
     return (
