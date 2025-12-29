@@ -1,7 +1,16 @@
 import { View, Text, StyleSheet } from 'react-native';
+import React,{useEffect} from 'react';
 
-const SplashScreen = () => {
-  return(
+const SplashScreen = ({navigation}) => {
+    useEffect(() => {
+        const timer = setTimeout(()=>{
+            navigation.replace('Login');
+        },3000);
+
+        return () => clearTimeout(timer);
+    },[navigation]);
+  
+    return(
     <View style = {styles.container}>
       <Text style = {styles.text}>Raibaar: Secure Messaging</Text>
     </View>

@@ -1,10 +1,10 @@
-import {View , Text , StyleSheet} from 'react-native';
+import {View , Text , StyleSheet, Button} from 'react-native';
 
 const LoginScreen = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.text}>Login Screen</Text>
-            <button>Start</button>
+            <Button title="Start" onPress={() => {}} />
         </View>
     );
 };
