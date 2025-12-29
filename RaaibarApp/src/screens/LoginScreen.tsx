@@ -5,17 +5,39 @@ const LoginScreen = ({ navigation }: any) => {
     const [username , setUsername] = useState('');
     const [password , setPassword] = useState('');
     
-    const handleLogin = () => {
+    const handleLogin = async() => {
         if(username.length === 0 || password.length === 0){
             Alert.alert('Error', 'Please fill in both fields');
             return;
         }
 
-        // To-Do: "Fake" Authentication Logic
-        // Later we will check this against a server. 
-        // For now, any non-empty input is success.
+        // Send login request to server(Authentication logic)
+        try{
+            const response = await fetch('https://10.132.8.50/24/login',{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                }),
+            });
 
-        navigation.replace('Home', {username}); // Pass username to HomeScreen
+            const data = await response.json();
+
+            if(response.status === 200){
+                navigation.replace('Home', {username: data.user.name}); // Pass username to HomeScreen
+            }
+            else{
+                Alert.alert('Login Failed', data.message); // Show error message from server
+            }
+        }
+
+        catch(error){
+            console.error('Login Error:', error);
+            Alert.alert('Error', 'Could not connect to server');
+        }
     }
 
     return (
