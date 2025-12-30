@@ -1,5 +1,5 @@
 import React , {useState} from 'react';
-import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform} from 'react-native';
+import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert} from 'react-native';
 
 const ChatScreen = ({route}:any) => {
     // get the username from route params
@@ -14,11 +14,37 @@ const ChatScreen = ({route}:any) => {
 
     const [inputText , setInputText] = useState('');
 
-    // Function to handle sending a message (visually only)
-    const sendMessage = () => {
+    // Function to handle sending a message (Connected to server)
+    const sendMessage = async () => {
         if(inputText.trim()){
-            setMessages([...messages,{id:Date.now().toString(), text: inputText,sender: 'me'}]);
+            const newMessage = {
+                id: Date.now().toString(),
+                text: inputText,
+                sender: 'me',
+            }
+
+            //shows it instantly in UI
+            setMessages([...messages,newMessage]);
             setInputText('');
+
+            try{
+                //sent it to server
+                await fetch('http://10.117.231.29:3000/messages',{
+                    method: 'POST',
+                    headers:{
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sender: 'Mayank',
+                        text: newMessage.text,
+                    }),
+                });
+                console.log('Message sent to server');
+            }
+            catch(error){
+                console.error('Error to send message: ', error);
+                Alert.alert("Server not reachable");
+            }
         }
     };
 

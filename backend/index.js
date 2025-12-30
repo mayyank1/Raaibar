@@ -9,13 +9,12 @@ const PORT = 3000; // The port where the server lives
 app.use(cors());
 app.use(bodyParser.json());
 
-// 1. A Simple Test Route (GET)
-// If you visit http://localhost:3000/ in a browser, this runs.
+//Test Route (GET)
 app.get('/', (req, res) => {
   res.send('Raaibar Server is Running...');
 });
 
-// 2. The Login Route (POST)
+// Login Route (POST)
 // The app will send data here.
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -30,7 +29,8 @@ app.post('/login', (req, res) => {
       message: 'Login Successful', 
       user: { name: 'Mayank', role: 'Admin' } 
     });
-  } else {
+  } 
+  else {
     // Failure Response
     res.status(401).json({ 
       success: false, 
@@ -39,8 +39,21 @@ app.post('/login', (req, res) => {
   }
 });
 
+// Receive a message from the phone
+app.post('/messages',(req,res) => {
+  const {sender,text} = req.body;
 
-// 1. Mock Data (Later this will come from a Database)
+  console.log(`NEW MESSAGE from ${sender}: ${text}`);
+
+  //in future we will store this in database
+  //for now just say message received
+  res.status(201).json({
+    success:true,
+    message:"Server received it!"
+  })
+})
+
+// Mock Data (Later this will come from a Database)
 const MOCK_MESSAGES = [
   { id: '1', sender: 'Admin', text: 'Welcome to Raaibar Security.', time: '10:00 AM' },
   { id: '2', sender: 'System', text: 'Your account was created successfully.', time: '10:05 AM' },
@@ -48,7 +61,7 @@ const MOCK_MESSAGES = [
   { id: '4', sender: 'Papa', text: 'Call me when you are free.', time: '1:00 PM' },
 ];
 
-// 2. The Route to get messages
+// GET Messages Route
 app.get('/messages', (req, res) => {
   res.status(200).json(MOCK_MESSAGES);
 });
