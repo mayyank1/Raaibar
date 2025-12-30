@@ -13,7 +13,7 @@ const LoginScreen = ({ navigation }: any) => {
 
         // Send login request to server(Authentication logic)
         try{
-            const response = await fetch('http://10.117.231.148:3000/login',{
+            const response = await fetch('http://10.117.231.206:3000/login',{
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

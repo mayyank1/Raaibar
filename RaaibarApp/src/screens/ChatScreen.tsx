@@ -2,7 +2,7 @@ import React , {useEffect, useState} from 'react';
 import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert} from 'react-native';
 
 interface Message {
-    id: string;
+    _id: string; // Change 'id' to '_id' (MongoDB format)
     sender: string;
     text: string;
     time: string;
@@ -26,7 +26,7 @@ const ChatScreen = ({route}:any) => {
 
     const fetchHistory = async() => {
         try{
-            const response = await fetch('http://10.117.231.148:3000/messages');
+            const response = await fetch('http://10.117.231.206:3000/messages');
             const data = await response.json();
             setMessages(data);
         }
@@ -42,7 +42,7 @@ const ChatScreen = ({route}:any) => {
         if(inputText.trim()){
             //update UI by fetchHistory() 
             try{
-                await fetch('http://10.117.231.148:3000/messages',{
+                await fetch('http://10.117.231.206:3000/messages',{
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json'
@@ -86,7 +86,7 @@ const ChatScreen = ({route}:any) => {
             <FlatList
                 data={messages}
                 renderItem={renderMessage}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item._id}
                 contentContainerStyle={styles.listContent}
             />
 

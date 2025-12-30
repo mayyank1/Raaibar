@@ -1,11 +1,11 @@
 import React, {useEffect,useState} from "react";
-import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator} from 'react-native';
+import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator ,Button} from 'react-native';
 
 interface Message {
-  id: string;
-  sender: string;
-  text: string;
-  time: string;
+    _id: string; // Change 'id' to '_id' (MongoDB format)
+    sender: string;
+    text: string;
+    time: string;
 }
 
 const HomeScreen = ({navigation,route}:any) => {
@@ -22,7 +22,7 @@ const HomeScreen = ({navigation,route}:any) => {
 
     const fetchMessages = async() => {
         try{
-            const response = await fetch('http://10.117.231.148:3000/messages');
+            const response = await fetch('http://10.117.231.206:3000/messages');
             const data = await response.json();
             setMessage(data);
         }
@@ -67,13 +67,21 @@ const HomeScreen = ({navigation,route}:any) => {
 
       <Text style={styles.welcomeText}>Hello, {username}</Text>
 
+      <View style={{ margin: 20 }}>
+            <Button 
+                title="Start New Chat" 
+                color="teal"
+                onPress={() => navigation.navigate('Chat', { name: 'General Chat' })} 
+            />
+        </View>
+
       {/* The List */}
       {loading ? (
         <ActivityIndicator size="large" color="teal" />
       ) : (
         <FlatList
           data={message}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
         />

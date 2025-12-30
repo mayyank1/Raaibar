@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = 3000; // The port where the server lives
@@ -9,10 +10,21 @@ const PORT = 3000; // The port where the server lives
 app.use(cors());
 app.use(bodyParser.json());
 
-let GLOBAL_CHAT_HISTORY = [
-  {id:'1',sender:'Admin',text:'Welcome to Raaibar Security.',time:'10:00 AM'},
-  {id:'2',sender:'Rahul',text:'Are you working on the project?',time:'11:30 AM'},
-];
+// Connect to MongoDB
+mongoose.connect('mongodb://127.0.0.1:27017/raaibarDB')
+  .then(() => console.log('MongoDB Connected Successfully'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
+
+//Define Message Schema
+const messageSchema = new mongoose.Schema({
+  sender: String,
+  text: String,
+  time: String, //store readable time
+  createdAt: { type: Date, default: Date.now } //auto-date for sorting
+})
+
+//create the model
+const Message = mongoose.model('Message', messageSchema);
 
 //Test Route (GET) 
 app.get('/', (req, res) => {
@@ -45,35 +57,59 @@ app.post('/login', (req, res) => {
 });
 
 
-//GET Route: Send the whole chat history to the phone
-app.get('/messages',(req,res)=>{
-  res.status(200).json(GLOBAL_CHAT_HISTORY);
-});
+//GET MESSAGES Route(from Database)
+app.get('/messages',async(req,res)=>{
+  try{
+    //Fetch all messages and sort by time(oldest first)
+    const history = await Message.find().sort({createdAt:1});
+    res.status(200).json(history);
+  }
+  catch(error){
+    res.status(500).json({
+      error: "Failed to fetch messages"
+    });
+  }
+})
 
-// POST Route:Save new message to chat history
-app.post('/messages',(req,res)=>{
+// POST MESSAGES Route(Saves messages to Database)
+app.post('/messages',async (req,res)=>{
   const {sender,text} = req.body;
 
-  // Create new message object
-  const newMessage = {
-    id: Date.now().toString(),
-    sender: sender,
-    text: text,
-    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-  };
+  console.log(`Received connection from phone. Processing message from: ${sender}`);
 
-  //Save it to global chat history array
-  GLOBAL_CHAT_HISTORY.push(newMessage);
+  try{
 
-  console.log(`NEW MESSAGE from ${sender}: ${text}`);
-  console.log("Updated History Size:", GLOBAL_CHAT_HISTORY.length);
+      // Get readable time (e.g., "10:30 PM")
+      const readableTime = new Date().toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+      });
 
-  res.status(201).json({
-    success: true,
-    message: "Message saved to memory!"
-  });
-  
-})
+      // Create new message object
+      const newMessage = new Message({
+        sender: sender,
+        text: text,
+        time: readableTime, //store readable time
+        //We don't need to set createdAt, mongoose will handle it
+      });
+    
+      // save it to database
+      await newMessage.save();
+    
+      console.log(`SUCCESS: Message saved to DB: ${text}`);
+    
+      res.status(201).json({
+        success: true,
+        message: "Message saved to MongoDB!"
+      });
+  }
+  catch(error){
+    console.error("DATABASE ERROR:", error); //log the error if MongoDB operation fails
+    res.status(500).json({
+      error: "Failed to save message"
+    });
+  }
+});
 
 
 // Start the Server
