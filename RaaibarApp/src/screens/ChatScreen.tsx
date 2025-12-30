@@ -1,58 +1,72 @@
-import React , {useState} from 'react';
+import React , {useEffect, useState} from 'react';
 import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert} from 'react-native';
+
+interface Message {
+    id: string;
+    sender: string;
+    text: string;
+    time: string;
+}
 
 const ChatScreen = ({route}:any) => {
     // get the username from route params
     const {name} = route.params;
 
-    //Dummy messages
-    const [messages , setMessages] = useState([
-        { id: '1', text: 'Hey, how are you?', sender: 'them' },
-        { id: '2', text: 'I am good, just coding Raaibar!', sender: 'me' },
-        { id: '3', text: 'That sounds awesome.', sender: 'them' },
-    ]);
+    //start with empty messages(we will fetch messages from server)
+    const [messages, setMessages] = useState<Message[]>([]);
+
+    //fetch history on load(and every 2 sec to see new messages)
+    useEffect(() => {
+        fetchHistory();
+
+        //auto refresh every 2 sec
+        const interval = setInterval(fetchHistory,2000);
+        return () => clearInterval(interval);
+    },[]);
+
+    const fetchHistory = async() => {
+        try{
+            const response = await fetch('http://10.117.231.148:3000/messages');
+            const data = await response.json();
+            setMessages(data);
+        }
+        catch(error){
+            console.log('Error fetching history: ', error);
+        }
+    };
 
     const [inputText , setInputText] = useState('');
 
     // Function to handle sending a message (Connected to server)
     const sendMessage = async () => {
         if(inputText.trim()){
-            const newMessage = {
-                id: Date.now().toString(),
-                text: inputText,
-                sender: 'me',
-            }
-
-            //shows it instantly in UI
-            setMessages([...messages,newMessage]);
-            setInputText('');
-
+            //update UI by fetchHistory() 
             try{
-                //sent it to server
-                await fetch('http://10.117.231.29:3000/messages',{
+                await fetch('http://10.117.231.148:3000/messages',{
                     method: 'POST',
                     headers:{
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sender: 'Mayank',
-                        text: newMessage.text,
+                        sender: 'Mayank', //sender is hardcoded for now
+                        text: inputText,
                     }),
                 });
-                console.log('Message sent to server');
+
+                setInputText('');
+                fetchHistory(); // force refresh messages
             }
             catch(error){
-                console.error('Error to send message: ', error);
-                Alert.alert("Server not reachable");
+                console.error("Failed to send");
             }
         }
     };
 
     const renderMessage = ({item}:any) => (
         <View style={[styles.messageBubble,
-            item.sender === 'me' ? styles.myMessage : styles.theirMessage
+            item.sender === 'Mayank' ? styles.myMessage : styles.theirMessage
         ]}>
-            <Text style= {item.sender === 'me' ? styles.myText : styles.theirText}>
+            <Text style= {item.sender === 'Mayank' ? styles.myText : styles.theirText}>
                 {item.text}
             </Text>
         </View>

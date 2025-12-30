@@ -9,7 +9,12 @@ const PORT = 3000; // The port where the server lives
 app.use(cors());
 app.use(bodyParser.json());
 
-//Test Route (GET)
+let GLOBAL_CHAT_HISTORY = [
+  {id:'1',sender:'Admin',text:'Welcome to Raaibar Security.',time:'10:00 AM'},
+  {id:'2',sender:'Rahul',text:'Are you working on the project?',time:'11:30 AM'},
+];
+
+//Test Route (GET) 
 app.get('/', (req, res) => {
   res.send('Raaibar Server is Running...');
 });
@@ -39,33 +44,36 @@ app.post('/login', (req, res) => {
   }
 });
 
-// Receive a message from the phone
-app.post('/messages',(req,res) => {
-  const {sender,text} = req.body;
 
-  console.log(`NEW MESSAGE from ${sender}: ${text}`);
-
-  //in future we will store this in database
-  //for now just say message received
-  res.status(201).json({
-    success:true,
-    message:"Server received it!"
-  })
-})
-
-// Mock Data (Later this will come from a Database)
-const MOCK_MESSAGES = [
-  { id: '1', sender: 'Admin', text: 'Welcome to Raaibar Security.', time: '10:00 AM' },
-  { id: '2', sender: 'System', text: 'Your account was created successfully.', time: '10:05 AM' },
-  { id: '3', sender: 'Rahul', text: 'Hey, are you done with the project?', time: '11:30 AM' },
-  { id: '4', sender: 'Papa', text: 'Call me when you are free.', time: '1:00 PM' },
-];
-
-// GET Messages Route
-app.get('/messages', (req, res) => {
-  res.status(200).json(MOCK_MESSAGES);
+//GET Route: Send the whole chat history to the phone
+app.get('/messages',(req,res)=>{
+  res.status(200).json(GLOBAL_CHAT_HISTORY);
 });
 
+// POST Route:Save new message to chat history
+app.post('/messages',(req,res)=>{
+  const {sender,text} = req.body;
+
+  // Create new message object
+  const newMessage = {
+    id: Date.now().toString(),
+    sender: sender,
+    text: text,
+    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+  };
+
+  //Save it to global chat history array
+  GLOBAL_CHAT_HISTORY.push(newMessage);
+
+  console.log(`NEW MESSAGE from ${sender}: ${text}`);
+  console.log("Updated History Size:", GLOBAL_CHAT_HISTORY.length);
+
+  res.status(201).json({
+    success: true,
+    message: "Message saved to memory!"
+  });
+  
+})
 
 
 // Start the Server
