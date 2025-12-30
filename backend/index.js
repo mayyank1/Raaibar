@@ -80,25 +80,35 @@ app.post('/signup', async(req,res) => {
     
 // Login Route (POST)
 // The app will send data here.
-app.post('/login', (req, res) => {
+app.post('/login', async(req, res) => {
   const { username, password } = req.body;
 
   console.log(`Login attempt: ${username}`);
 
-  // DUMMY LOGIC (We will add a Database later)
-  if (username === 'Mayank' && password === '123456') {
-    // Success Response
-    res.status(200).json({ 
-      success: true, 
-      message: 'Login Successful', 
-      user: { name: 'Mayank', role: 'Admin' } 
-    });
-  } 
-  else {
-    // Failure Response
-    res.status(401).json({ 
-      success: false, 
-      message: 'Invalid Credentials' 
+  try{
+    //check if user exists in MongoDB with matching password
+    const user = await User.findOne({username: username, password: password});
+
+    if(user){
+      //User FOUND -> Login Success
+      res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: {name: user.username, id: user._id}
+      });
+    }
+    else{
+      //User NOT FOUND -> Login Failed
+      res.status(401).json({
+        success: false,
+        message: "Invalid username or password"
+      });
+    }
+  }
+  catch(error){
+    console.error("Login Error:" , error);
+    res.status(500).json({
+      error: "Internal server Error"
     });
   }
 });
