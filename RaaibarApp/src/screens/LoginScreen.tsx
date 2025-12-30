@@ -13,7 +13,7 @@ const LoginScreen = ({ navigation }: any) => {
 
         // Send login request to server(Authentication logic)
         try{
-            const response = await fetch('http://10.117.231.206:3000/login',{
+            const response = await fetch('http://10.0.2.2:3000/login',{
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,6 +60,14 @@ const LoginScreen = ({ navigation }: any) => {
             />
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Login</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+                onPress={() => navigation.navigate('Signup')}
+            >
+                <Text style={{color: 'teal', textAlign: 'center', marginTop: 20}}>
+                    Don't have an account? Sign Up
+                </Text>
             </TouchableOpacity>
         </View>
     );

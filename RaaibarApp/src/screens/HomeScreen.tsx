@@ -22,7 +22,7 @@ const HomeScreen = ({navigation,route}:any) => {
 
     const fetchMessages = async() => {
         try{
-            const response = await fetch('http://10.117.231.206:3000/messages');
+            const response = await fetch('http://10.0.2.2:3000/messages');
             const data = await response.json();
             setMessage(data);
         }

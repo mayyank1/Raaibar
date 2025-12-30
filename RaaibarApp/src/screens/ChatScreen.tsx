@@ -26,7 +26,7 @@ const ChatScreen = ({route}:any) => {
 
     const fetchHistory = async() => {
         try{
-            const response = await fetch('http://10.117.231.206:3000/messages');
+            const response = await fetch('http://10.0.2.2:3000/messages');
             const data = await response.json();
             setMessages(data);
         }
@@ -42,7 +42,7 @@ const ChatScreen = ({route}:any) => {
         if(inputText.trim()){
             //update UI by fetchHistory() 
             try{
-                await fetch('http://10.117.231.206:3000/messages',{
+                await fetch('http://10.0.2.2:3000/messages',{
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json'

@@ -15,6 +15,22 @@ mongoose.connect('mongodb://127.0.0.1:27017/raaibarDB')
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
+//USER schema(stores username & password)
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    unique: true,
+    required: true
+  },
+  password: {
+    type: String,
+    required: true
+  }
+});
+
+//create the user model
+const User = mongoose.model('User', userSchema);
+
 //Define Message Schema
 const messageSchema = new mongoose.Schema({
   sender: String,
@@ -23,7 +39,7 @@ const messageSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now } //auto-date for sorting
 })
 
-//create the model
+//create the message model
 const Message = mongoose.model('Message', messageSchema);
 
 //Test Route (GET) 
@@ -31,6 +47,37 @@ app.get('/', (req, res) => {
   res.send('Raaibar Server is Running...');
 });
 
+app.post('/signup', async(req,res) => {
+  const {username,password} = req.body;
+
+  try{
+    //check if user already exists
+    const existingUser = await User.findOne({username});
+    if(existingUser){
+      return res.status(400).json({
+        success: false,
+        message: "Username already taken"
+      });
+    }
+
+    //create new user
+    const newUser = new User({username,password});
+    await newUser.save();
+
+    console.log(`NEW USER REGISTERED: ${username}`);
+    res.status(201).json({
+      success:true,
+      message: "User registered successfully"
+    });
+  }
+  catch(error){
+    console.error("Signup Error:", error);
+    res.status(500).json({
+      error: "Signup failed"
+    });
+  }
+});
+    
 // Login Route (POST)
 // The app will send data here.
 app.post('/login', (req, res) => {
