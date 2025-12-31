@@ -1,149 +1,249 @@
-import React, {useEffect,useState} from "react";
-import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator ,Button} from 'react-native';
+import React, {use, useEffect,useState} from "react";
+import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator ,Button,Alert , TextInput} from 'react-native';
 
-interface Message {
-    _id: string; // Change 'id' to '_id' (MongoDB format)
-    sender: string;
-    text: string;
-    time: string;
-}
 
 const HomeScreen = ({navigation,route}:any) => {
-    const {username} = route.params || {username: 'User'};
+    //Get the username of the person logged in
+    const {username} = route.params;
 
-    //state to hold messages from server
-    const [message, setMessage] = useState<Message[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [friends,setFriends] = useState<string[]>([]);
+    const [requests,setRequests] = useState<string[]>([]);
+    const [newFriendName,setNewFriendName] = useState('');
 
-    //fetch data from server
+    //Load Data when screen loads
     useEffect(() => {
-        fetchMessages();
+      fetchMyData();
+      const interval = setInterval(fetchMyData, 3000); //Refresh every 3 seconds
+      return () => clearInterval(interval);
     },[]);
 
-    const fetchMessages = async() => {
-        try{
-            const response = await fetch('http://10.0.2.2:3000/messages');
-            const data = await response.json();
-            setMessage(data);
-        }
-        catch(error){
-            console.error("Error fetching chats: ", error);
-        }
-        finally{
-            setLoading(false); //stop  loding spinner
-        }
+    const fetchMyData = async() => {
+
+      try{
+        //Get My Friends
+        const friendsRes = await fetch(`http://10.0.2.2:3000/my-friends/${username}`);
+        const friendsData = await friendsRes.json();
+        setFriends(friendsData);
+  
+        //Get My Friend Requests
+        const reqRes = await fetch(`http://10.0.2.2:3000/my-requests/${username}`);
+        const reqData = await reqRes.json();
+        setRequests(reqData);
+      }
+      catch(error){
+        console.error('Error fetching data:', error);
+      }
     }
 
+    //--BUTTON FUNCTIONS---
+    const sendFriendRequest = async() => {
+      if(!newFriendName){
+        Alert.alert('Please enter a name');
+        return;
+      }
+
+      try{
+        const response = await fetch('http://10.0.2.2:3000/send-request',{
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: username,
+            receiver: newFriendName
+          })
+        });
+
+        const data = await response.json();
+        Alert.alert(data.success ? "Success" : "Error", data.message);
+        setNewFriendName('');
+      }
+      catch(error){
+        Alert.alert('Error',"Could not send friend request");
+      }
+
+    };
+
+    const acceptRequest = async(friendToAccept: string) => {
+      try{
+        await fetch('http://10.0.2.2:3000/accept-request',{
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: username,
+            friendToAccept: friendToAccept
+          })
+        });
+        fetchMyData(); //Refresh data imediately
+      }
+      catch(error){
+        Alert.alert("Error","Could not accept");
+      }
+    };
+    
     const handleLogout = () => {
         navigation.replace('Login');
     };
 
-    // row looks
-    const renderItem = ({item}:any) => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('Chat',{name:item.sender})
-          }
-        >
-          <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                  <Text style={styles.sender}>{item.sender}</Text>
-                  <Text style={styles.time}>{item.time}</Text>
-              </View>
-              <Text style={styles.messageText}>{item.text}</Text>
-          </View>
-        </TouchableOpacity>
+
+    //---RENDER ITEMS---
+    const renderFriend = ({item}:any) => (
+      <TouchableOpacity
+        style= {styles.card}
+        onPress={()=> navigation.navigate('Chat',{myName:username,friendName: item})}
+      >
+        <View style={styles.avatar}><Text style={styles.avatarText}>{item[0].toUpperCase()}</Text></View>
+        <Text style={styles.friendName}>{item}</Text>
+      </TouchableOpacity>
+    );
+
+    const renderRequest = ({item}:any)=>(
+      <View style={styles.requestCard}>
+        <Text>{item} wants to chat!</Text>
+        <Button title="Accept" color="teal" onPress={() => acceptRequest(item)}/>
+      </View>
     )
+
+    // row looks
 
     return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Raaibar</Text>
+        <Text style={styles.subTitle}>Logged in as: {username}</Text>
         <TouchableOpacity onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logout}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.welcomeText}>Hello, {username}</Text>
-
-      <View style={{ margin: 20 }}>
-            <Button 
-                title="Start New Chat" 
-                color="teal"
-                onPress={() => navigation.navigate('Chat', { name: 'General Chat' })} 
-            />
+      {/* Section 1 : Add Friend */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Add a Friend</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter username (eg. Rahul)"
+            value={newFriendName}
+            onChangeText={setNewFriendName}
+          />
+          <Button title="Add" onPress={sendFriendRequest} color="teal"/>
         </View>
+      </View>
 
-      {/* The List */}
-      {loading ? (
-        <ActivityIndicator size="large" color="teal" />
-      ) : (
-        <FlatList
-          data={message}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-        />
+      {/* Section 2 : Friend Requests */}
+      {requests.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Friend Requests</Text>
+          <FlatList data={requests} keyExtractor={item => item} renderItem={renderRequest}/>
+        </View>
       )}
+
+      {/* Section 3: My Friends List */}
+      <View style={{flex: 1, padding: 20}}>
+        <Text style={styles.sectionTitle}>My Chats</Text>
+        {friends.length === 0 ? (
+          <Text style={{color: '#888' , fontStyle: 'italic'}}>No friends yet. Add someone above!</Text>
+          ) : (
+          <FlatList 
+            data={friends}
+            keyExtractor={item => item}
+            renderItem={renderFriend}
+          />
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f5f5f5' 
   },
-  header: {
-    backgroundColor: 'teal',
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 4, // Shadow for Android
-  },
-  title: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  logoutText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  welcomeText: {
-    padding: 20,
-    fontSize: 18,
-    color: '#333',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 2, // Shadow
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  sender: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
-  },
-  time: {
-    color: '#888',
-    fontSize: 12,
-  },
-  messageText: {
-    color: '#555',
-  },
+    header: { 
+      backgroundColor: 'teal', 
+      padding: 20, 
+      paddingTop: 40 
+    },
+    title: { 
+      color: 'white', 
+      fontSize: 24, 
+      fontWeight: 'bold' 
+    },
+    subTitle: { 
+      color: '#e0f2f1', 
+      fontSize: 14 
+    },
+    logout: { 
+      color: 'white', 
+      fontWeight: 'bold', 
+      marginTop: 10 
+    },
+    section: { 
+      padding: 20, 
+      paddingBottom: 0 
+    },
+    sectionTitle: { 
+      fontSize: 18, 
+      fontWeight: 'bold', 
+      color: '#333', 
+      marginBottom: 10 
+    },
+    inputRow: { 
+      flexDirection: 'row', 
+      alignItems: 'center' 
+    },
+    input: { 
+      flex: 1, 
+      backgroundColor: 'white', 
+      borderWidth: 1, 
+      borderColor: '#ddd', 
+      padding: 10, 
+      borderRadius: 5, 
+      marginRight: 10 
+    },
+    card: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      backgroundColor: 'white', 
+      padding: 15, 
+      borderRadius: 10, 
+      marginBottom: 10, 
+      elevation: 2 
+    },
+    friendName: { 
+      fontSize: 18, 
+      fontWeight: 'bold', 
+      marginLeft: 15 },
+    avatar: { 
+      width: 40, 
+      height: 40, 
+      borderRadius: 20, 
+      backgroundColor: 'teal', 
+      justifyContent: 'center', 
+      alignItems: 'center' 
+    },
+    avatarText: { 
+      color: 'white', 
+      fontWeight: 'bold', 
+      fontSize: 18 
+    },
+    requestCard: { 
+      flexDirection: 'row', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      backgroundColor: '#e0f2f1', 
+      padding: 10, 
+      borderRadius: 5,
+      marginBottom: 5 
+    },
+    reqText: { 
+      fontWeight: 'bold', 
+      color: 'teal' 
+    },
 });
 
 export default HomeScreen;

@@ -25,7 +25,9 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
-  }
+  },
+  friends: [{ type: String }],
+  friendRequests: [{type: String}]
 });
 
 //create the user model
@@ -38,6 +40,93 @@ const messageSchema = new mongoose.Schema({
   time: String, //store readable time
   createdAt: { type: Date, default: Date.now } //auto-date for sorting
 })
+
+// ---------------------------------------------------
+// FRIEND SYSTEM ROUTES 
+// ---------------------------------------------------
+
+//Send Friend Request
+app.post('/send-request' , async(req,res) => {
+  const {sender,receiver} = req.body;
+
+  if(sender == receiver){
+    return res.status(400).json({message: "Cannot add yourself"});
+  }
+
+  try{
+    const targetUser = await User.findOne({username: receiver});
+    if(!targetUser) return res.status(404).json({success: false,message: "User not found"});
+    
+    //Check if already friends or requested
+    if(targetUser.friendRequests.includes(sender) || targetUser.friends.includes(sender)){
+      return res.status(400).json({success:false,message: "Request already sent or already friends"});
+    }
+
+    targetUser.friendRequests.push(sender);
+    await targetUser.save();
+
+    console.log(`Friend request: ${sender}->${receiver}`);
+    res.status(200).json({success:true,message: "Request Sent!"});
+  }
+  catch(error){
+    res.status(500).json({error: "Request failed"});
+  }
+  
+});
+
+//Get My Friend Requests
+app.get('/my-requests/:username',async(req,res) => {
+  try{
+    const user = await User.findOne({username: req.params.username});
+    res.status(200).json(user ? user.friendRequests : []);
+  }
+  catch(error){
+    res.status(500).json({error: "Fetch Failed"});
+  }
+});
+
+//Accept Friend Request
+app.post('/accept-request',async(req,res) => {
+  const{username,friendToAccept} = req.body;
+
+  try{
+    const user = await User.findOne({username});
+    const friend = await User.findOne({username: friendToAccept});
+
+    if(!user || !friend) return res.status(404).json({message: "User not found"});
+
+    //remove from requests
+    user.friendRequests = user.friendRequests.filter(req => req !== friendToAccept);
+
+    //add to friend list (Both sides)
+    user.friends.push(friendToAccept);
+    friend.friends.push(username);
+
+    await user.save();
+    await friend.save();
+
+    console.log(`Friendship created: ${username} <-> ${friendToAccept}`);
+    res.status(200).json({success:true,message:"Friend Added!"});
+  }
+  catch(error){
+    res.status(500).json({error: "Accept failed"});
+  }
+})
+
+//Get My friend list
+app.get('/my-friends/:username',async(req,res) => {
+  try{
+    const user = await User.findOne({username: req.params.username});
+    res.status(200).json(user ? user.friends : []);
+  }
+  catch(error){
+    res.status(500).json({error: "Fetch failed"});
+  }
+});
+
+// ---------------------------------------------------
+// END FRIEND ROUTES
+// ---------------------------------------------------
 
 //create the message model
 const Message = mongoose.model('Message', messageSchema);
