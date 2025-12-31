@@ -11,7 +11,8 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/raaibarDB')
+const mongoURI = "mongodb+srv://mayyank:Bholebaba@123@cluster.lzihkny.mongodb.net/?appName=Cluster"
+mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
@@ -36,6 +37,7 @@ const User = mongoose.model('User', userSchema);
 //Define Message Schema
 const messageSchema = new mongoose.Schema({
   sender: String,
+  receiver: String,
   text: String,
   time: String, //store readable time
   createdAt: { type: Date, default: Date.now } //auto-date for sorting
@@ -48,11 +50,11 @@ const messageSchema = new mongoose.Schema({
 //Send Friend Request
 app.post('/send-request' , async(req,res) => {
   const {sender,receiver} = req.body;
-
+  
   if(sender == receiver){
     return res.status(400).json({message: "Cannot add yourself"});
   }
-
+  
   try{
     const targetUser = await User.findOne({username: receiver});
     if(!targetUser) return res.status(404).json({success: false,message: "User not found"});
@@ -61,10 +63,10 @@ app.post('/send-request' , async(req,res) => {
     if(targetUser.friendRequests.includes(sender) || targetUser.friends.includes(sender)){
       return res.status(400).json({success:false,message: "Request already sent or already friends"});
     }
-
+    
     targetUser.friendRequests.push(sender);
     await targetUser.save();
-
+    
     console.log(`Friend request: ${sender}->${receiver}`);
     res.status(200).json({success:true,message: "Request Sent!"});
   }
@@ -88,13 +90,13 @@ app.get('/my-requests/:username',async(req,res) => {
 //Accept Friend Request
 app.post('/accept-request',async(req,res) => {
   const{username,friendToAccept} = req.body;
-
+  
   try{
     const user = await User.findOne({username});
     const friend = await User.findOne({username: friendToAccept});
-
+    
     if(!user || !friend) return res.status(404).json({message: "User not found"});
-
+    
     //remove from requests
     user.friendRequests = user.friendRequests.filter(req => req !== friendToAccept);
 
@@ -136,6 +138,10 @@ app.get('/', (req, res) => {
   res.send('Raaibar Server is Running...');
 });
 
+// ---------------------------------------------------
+// SIGNUP ROUTES
+// ---------------------------------------------------
+
 app.post('/signup', async(req,res) => {
   const {username,password} = req.body;
 
@@ -166,8 +172,16 @@ app.post('/signup', async(req,res) => {
     });
   }
 });
-    
-// Login Route (POST)
+
+// ---------------------------------------------------
+// END SIGNUP ROUTES
+// ---------------------------------------------------
+
+
+// ---------------------------------------------------
+// AUTHENTICATION ROUTES
+// ---------------------------------------------------
+
 // The app will send data here.
 app.post('/login', async(req, res) => {
   const { username, password } = req.body;
@@ -202,26 +216,44 @@ app.post('/login', async(req, res) => {
   }
 });
 
+// ---------------------------------------------------
+// END AUTHENTICATION ROUTES
+// ---------------------------------------------------
 
-//GET MESSAGES Route(from Database)
-app.get('/messages',async(req,res)=>{
+
+// ---------------------------------------------------
+// MESSAGES ROUTES
+// ---------------------------------------------------
+
+//GET PRIVATE MESSAGES(from Database)
+app.get('/messages/:user1/:user2',async(req,res)=>{
+  const {user1,user2} = req.params;
+  
   try{
+    //Find messages where:
+    //(Sender is Me AND Receiver is Friend) OR (Sender is Friend AND Receiver is Me)
     //Fetch all messages and sort by time(oldest first)
-    const history = await Message.find().sort({createdAt:1});
+    const history = await Message.find({
+      $or:[
+        {sender:user1,receiver:user2},
+        {sender:user2,receiver:user1}
+      ]
+    }).sort({createdAt:1});
+
     res.status(200).json(history);
   }
   catch(error){
     res.status(500).json({
-      error: "Failed to fetch messages"
+      error: "Failed to fetch"
     });
   }
 })
 
 // POST MESSAGES Route(Saves messages to Database)
 app.post('/messages',async (req,res)=>{
-  const {sender,text} = req.body;
+  const {sender,receiver,text} = req.body;
 
-  console.log(`Received connection from phone. Processing message from: ${sender}`);
+  console.log(`Message: ${sender} -> ${receiver}: ${text}`);
 
   try{
 
@@ -234,6 +266,7 @@ app.post('/messages',async (req,res)=>{
       // Create new message object
       const newMessage = new Message({
         sender: sender,
+        receiver: receiver,
         text: text,
         time: readableTime, //store readable time
         //We don't need to set createdAt, mongoose will handle it
@@ -257,8 +290,12 @@ app.post('/messages',async (req,res)=>{
   }
 });
 
+// ---------------------------------------------------
+// END MESSAGES ROUTES
+// ---------------------------------------------------
+
 
 // Start the Server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT} --- WITH MESSAGES ROUTE`);
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });

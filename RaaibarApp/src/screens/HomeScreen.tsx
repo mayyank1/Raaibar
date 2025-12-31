@@ -21,12 +21,12 @@ const HomeScreen = ({navigation,route}:any) => {
 
       try{
         //Get My Friends
-        const friendsRes = await fetch(`http://10.0.2.2:3000/my-friends/${username}`);
+        const friendsRes = await fetch(`http://10.154.248.119:3000/my-friends/${username}`);
         const friendsData = await friendsRes.json();
         setFriends(friendsData);
   
         //Get My Friend Requests
-        const reqRes = await fetch(`http://10.0.2.2:3000/my-requests/${username}`);
+        const reqRes = await fetch(`http://10.154.248.119:3000/my-requests/${username}`);
         const reqData = await reqRes.json();
         setRequests(reqData);
       }
@@ -43,7 +43,7 @@ const HomeScreen = ({navigation,route}:any) => {
       }
 
       try{
-        const response = await fetch('http://10.0.2.2:3000/send-request',{
+        const response = await fetch('http://10.154.248.119:3000/send-request',{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ const HomeScreen = ({navigation,route}:any) => {
 
     const acceptRequest = async(friendToAccept: string) => {
       try{
-        await fetch('http://10.0.2.2:3000/accept-request',{
+        await fetch('http://10.154.248.119:3000/accept-request',{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

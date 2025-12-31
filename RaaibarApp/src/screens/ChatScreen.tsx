@@ -1,60 +1,68 @@
-import React , {useEffect, useState} from 'react';
-import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert} from 'react-native';
+import React , {useEffect, useRef, useState} from 'react';
+import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert , ActivityIndicator} from 'react-native';
 
 interface Message {
     _id: string; // Change 'id' to '_id' (MongoDB format)
     sender: string;
+    receiver: string;
     text: string;
     time: string;
 }
 
 const ChatScreen = ({route}:any) => {
-    // get the username from route params
-    const {name} = route.params;
+    // get the names passed from HomeScreen
+    const {myName , friendName} = route.params;
 
     //start with empty messages(we will fetch messages from server)
     const [messages, setMessages] = useState<Message[]>([]);
+    const [inputText,setInputText] = useState('');
+    const [loading,setLoading] = useState(true);
 
-    //fetch history on load(and every 2 sec to see new messages)
+    //Auto-scroll to bottom when new message arrives
+    const flatListRef = useRef<FlatList>(null);
+
+    //fetch message history on load(and every 2 sec to see new messages)
     useEffect(() => {
-        fetchHistory();
+        fetchMessages();
 
         //auto refresh every 2 sec
-        const interval = setInterval(fetchHistory,2000);
+        const interval = setInterval(fetchMessages,2000);
         return () => clearInterval(interval);
     },[]);
 
-    const fetchHistory = async() => {
+    const fetchMessages = async() => {
         try{
-            const response = await fetch('http://10.0.2.2:3000/messages');
+            //Fetch messages ONLY between me and this friend
+            const response = await fetch(`http://10.154.248.119:3000/messages/${myName}/${friendName}`);
             const data = await response.json();
             setMessages(data);
+            setLoading(false);
         }
         catch(error){
-            console.log('Error fetching history: ', error);
+            console.log('Error fetching chat: ', error);
         }
     };
 
-    const [inputText , setInputText] = useState('');
 
     // Function to handle sending a message (Connected to server)
     const sendMessage = async () => {
         if(inputText.trim()){
             //update UI by fetchHistory() 
             try{
-                await fetch('http://10.0.2.2:3000/messages',{
+                await fetch('http://10.154.248.119:3000/messages',{
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sender: 'Mayank', //sender is hardcoded for now
+                        sender: myName,
+                        receiver: friendName,
                         text: inputText,
                     }),
                 });
 
                 setInputText('');
-                fetchHistory(); // force refresh messages
+                fetchMessages(); // force refresh messages
             }
             catch(error){
                 console.error("Failed to send");
@@ -62,33 +70,39 @@ const ChatScreen = ({route}:any) => {
         }
     };
 
-    const renderMessage = ({item}:any) => (
-        <View style={[styles.messageBubble,
-            item.sender === 'Mayank' ? styles.myMessage : styles.theirMessage
-        ]}>
-            <Text style= {item.sender === 'Mayank' ? styles.myText : styles.theirText}>
-                {item.text}
-            </Text>
-        </View>
-    );
+    const renderMessage = ({item}:{item: Message}) => {
+        const isMyMessage = item.sender === myName;
+        return(
+            <View style={[styles.messageBubble , isMyMessage ? styles.myMessage : styles.theirMessage]}> 
+                <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
+                <Text style={styles.timeText}>{item.time}</Text>
+            </View>
+        );
+    };
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : "height"}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
         >
             {/* header */}
             <View style = {styles.header}>
-                <Text style={styles.headerTitle}>{name}</Text>
+                <Text style={styles.headerTitle}>{friendName}</Text>
             </View>
 
-            {/* messages list */}
-            <FlatList
-                data={messages}
-                renderItem={renderMessage}
-                keyExtractor={item => item._id}
-                contentContainerStyle={styles.listContent}
-            />
+            {/* Chat List */}
+            {loading ? (
+                <ActivityIndicator size="large" color="teal" style={{marginTop: 20}}/>
+            ):(
+                <FlatList
+                    ref={flatListRef}
+                    data={messages}
+                    renderItem={renderMessage}
+                    keyExtractor={item => item._id}
+                    contentContainerStyle={styles.listContent}
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({animated:true})}
+                />
+            )}
 
             {/* input area */}
             <View style={styles.inputContainer}>
@@ -118,6 +132,7 @@ const styles = StyleSheet.create({
         padding:20,
         backgroundColor: 'teal',
         elevation:4,
+        paddingTop: 40,
     },
     headerTitle:{
         color: 'white',
@@ -126,6 +141,7 @@ const styles = StyleSheet.create({
     },
     listContent:{
         padding:15,
+        paddingBottom:20,
     },
     inputContainer:{
         flexDirection: 'row',
@@ -172,6 +188,12 @@ const styles = StyleSheet.create({
     },
     theirText:{
         color: 'black',
+    },
+    timeText: { 
+        fontSize: 10, 
+        marginTop: 5, 
+        alignSelf: 'flex-end', 
+        opacity: 0.7 
     },
 });
 

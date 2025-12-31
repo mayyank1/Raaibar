@@ -6,6 +6,8 @@ const LoginScreen = ({ navigation }: any) => {
     const [password , setPassword] = useState('');
     
     const handleLogin = async() => {
+        console.log("Button Pressed");
+        
         if(username.length === 0 || password.length === 0){
             Alert.alert('Error', 'Please fill in both fields');
             return;
@@ -13,7 +15,9 @@ const LoginScreen = ({ navigation }: any) => {
 
         // Send login request to server(Authentication logic)
         try{
-            const response = await fetch('http://10.0.2.2:3000/login',{
+            console.log("Attempting login to 10.154.248.119...");
+
+            const response = await fetch('http://localhost:3000/login',{
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -34,11 +38,21 @@ const LoginScreen = ({ navigation }: any) => {
             }
         }
 
-        catch(error){
-            console.error('Login Error:', error);
-            Alert.alert('Error', 'Could not connect to server');
+        // catch(error){
+        //     console.error('Login Error:', error);
+        //     Alert.alert('Error', 'Could not connect to server');
+        // }
+
+        catch (error: any) {
+            if (error.name === 'AbortError') {
+                Alert.alert('Error', 'Request Timed Out! (Firewall/IP issue)');
+            } 
+            else {
+                Alert.alert('Connection Error', error.message);
+                console.log("FULL ERROR:", error);
+            }
         }
-    }
+};
 
     return (
         <View style={styles.container}>
