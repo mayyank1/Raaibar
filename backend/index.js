@@ -11,7 +11,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Connect to MongoDB
-const mongoURI = "mongodb+srv://mayyank:Bholebaba@123@cluster.lzihkny.mongodb.net/?appName=Cluster"
+const mongoURI = "mongodb+srv://mayyank:Bholebaba123@cluster.lzihkny.mongodb.net/?appName=Cluster"
 mongoose.connect(mongoURI)
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));

@@ -33,7 +33,7 @@ const ChatScreen = ({route}:any) => {
     const fetchMessages = async() => {
         try{
             //Fetch messages ONLY between me and this friend
-            const response = await fetch(`http://10.154.248.119:3000/messages/${myName}/${friendName}`);
+            const response = await fetch(`https://raaibar.onrender.com/messages/${myName}/${friendName}`);
             const data = await response.json();
             setMessages(data);
             setLoading(false);
@@ -49,7 +49,7 @@ const ChatScreen = ({route}:any) => {
         if(inputText.trim()){
             //update UI by fetchHistory() 
             try{
-                await fetch('http://10.154.248.119:3000/messages',{
+                await fetch('https://raaibar.onrender.com/messages',{
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json'

@@ -14,7 +14,7 @@ const SignupScreen = ({navigation}:any) => {
 
         try{
             //connecting to the signup route of the backend
-            const response = await fetch("http://10.154.248.119:3000/signup",{
+            const response = await fetch("https://raaibar.onrender.com/signup",{
                 method: "POST",
                 headers: {
                     "Content-Type" : 'application/json'
