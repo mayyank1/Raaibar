@@ -9,7 +9,7 @@ interface Message {
     time: string;
 }
 
-const ChatScreen = ({route}:any) => {
+const ChatScreen = ({navigation,route}:any) => {
     // get the names passed from HomeScreen
     const {myName , friendName} = route.params;
 
@@ -87,7 +87,14 @@ const ChatScreen = ({route}:any) => {
         >
             {/* header */}
             <View style = {styles.header}>
-                <Text style={styles.headerTitle}>{friendName}</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Text style={styles.backIconText}>{"\u2190"}</Text>
+                </TouchableOpacity>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode='tail'>
+                        {friendName}
+                    </Text>
+                </View>
             </View>
 
             {/* Chat List */}
@@ -128,16 +135,40 @@ const styles = StyleSheet.create({
         flex:1,
         backgroundColor: '#f5f5f5',
     },
-    header:{
-        padding:20,
+    header: {
         backgroundColor: 'teal',
-        elevation:4,
-        paddingTop: 40,
+        paddingTop: Platform.OS === 'android' ? 40 : 50, 
+        paddingBottom: 15,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+    },
+    backButton: {
+        marginRight: 15,
+        padding: 4, 
+    },
+    backIconText: {
+        color: 'white',
+        fontSize: 30,
+        fontWeight: '300', 
+        includeFontPadding: false, 
+        height: 34, 
+        textAlignVertical: 'center',
+    },
+    titleContainer: {
+        flex: 1, 
+        justifyContent: 'center',
     },
     headerTitle:{
         color: 'white',
         fontSize:20,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        letterSpacing:0.5,
     },
     listContent:{
         padding:15,

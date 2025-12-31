@@ -47,12 +47,14 @@ const SignupScreen = ({navigation}:any) => {
             <TextInput
                 style={styles.input}
                 placeholder="Choose a Username"
+                placeholderTextColor="#888"
                 value = {username}
                 onChangeText={setUsername}
             />
             <TextInput
                 style={styles.input}
                 placeholder="Password"
+                placeholderTextColor="#888"
                 secureTextEntry
                 value = {password}
                 onChangeText={setPassword}
@@ -89,12 +91,15 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     input:{
-        backgroundColor: 'white', 
-        padding: 15, 
-        borderRadius: 10, 
-        marginBottom: 15, 
-        borderWidth: 1, 
-        borderColor: '#ddd'
+        height: 50,
+        borderColor: '#ddd',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        marginBottom: 20,
+        fontSize: 16,
+        color: '#333',
+        backgroundColor: '#f9f9f9',
     },
     button:{
         backgroundColor: 'teal', 

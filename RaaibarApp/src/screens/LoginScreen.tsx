@@ -6,7 +6,6 @@ const LoginScreen = ({ navigation }: any) => {
     const [password , setPassword] = useState('');
     
     const handleLogin = async() => {
-        console.log("Button Pressed");
         
         if(username.length === 0 || password.length === 0){
             Alert.alert('Error', 'Please fill in both fields');
@@ -15,7 +14,6 @@ const LoginScreen = ({ navigation }: any) => {
 
         // Send login request to server(Authentication logic)
         try{
-            console.log("Attempting login to 10.154.248.119...");
 
             const response = await fetch('https://raaibar.onrender.com/login',{
                 method: 'POST',
@@ -38,20 +36,11 @@ const LoginScreen = ({ navigation }: any) => {
             }
         }
 
-        // catch(error){
-        //     console.error('Login Error:', error);
-        //     Alert.alert('Error', 'Could not connect to server');
-        // }
-
-        catch (error: any) {
-            if (error.name === 'AbortError') {
-                Alert.alert('Error', 'Request Timed Out! (Firewall/IP issue)');
-            } 
-            else {
-                Alert.alert('Connection Error', error.message);
-                console.log("FULL ERROR:", error);
-            }
+        catch(error){
+            console.error('Login Error:', error);
+            Alert.alert('Error', 'Could not connect to server');
         }
+
 };
 
     return (
