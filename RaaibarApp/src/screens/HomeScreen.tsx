@@ -1,5 +1,6 @@
 import React, {use, useEffect,useState} from "react";
 import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator ,Button,Alert , TextInput} from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const HomeScreen = ({navigation,route}:any) => {
@@ -83,7 +84,10 @@ const HomeScreen = ({navigation,route}:any) => {
       }
     };
     
-    const handleLogout = () => {
+    const handleLogout = async() => {
+        //delete the saved data
+        await AsyncStorage.removeItem('username');
+
         navigation.replace('Login');
     };
 

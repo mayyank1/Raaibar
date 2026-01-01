@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {View , Text , StyleSheet , TextInput, TouchableOpacity, Alert} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }: any) => {
     const [username , setUsername] = useState('');
@@ -29,6 +30,7 @@ const LoginScreen = ({ navigation }: any) => {
             const data = await response.json();
 
             if(response.status === 200){
+                await AsyncStorage.setItem('username',data.user.name); // saves the username permanently
                 navigation.replace('Home', {username: data.user.name}); // Pass username to HomeScreen
             }
             else{
