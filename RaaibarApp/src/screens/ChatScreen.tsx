@@ -1,8 +1,9 @@
 import React , {useEffect, useRef, useState} from 'react';
 import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert , ActivityIndicator} from 'react-native';
+import {io , Socket} from "socket.io-client"
 
 interface Message {
-    _id: string; // Change 'id' to '_id' (MongoDB format)
+    _id?: string; // Change 'id' to '_id' (MongoDB format) and ? as new socket messages won't have _id instantly
     sender: string;
     receiver: string;
     text: string;
@@ -18,22 +19,47 @@ const ChatScreen = ({navigation,route}:any) => {
     const [inputText,setInputText] = useState('');
     const [loading,setLoading] = useState(true);
 
+    //ref to hold the socket object so it persists
+    const socketRef = useRef<Socket | null>(null);
     //Auto-scroll to bottom when new message arrives
     const flatListRef = useRef<FlatList>(null);
 
+    //RENDER URL
+    const SERVER_URL = "https://raaibar.onrender.com";
+
     //fetch message history on load(and every 2 sec to see new messages)
     useEffect(() => {
+        //initialize socket connection
+        socketRef.current = io(SERVER_URL);
+
+        //join my own "ROOM" so i can receive message
+        socketRef.current.emit("join_room",myName);
+
+        //listen for incomming messages
+        socketRef.current.on("receive_message" , (data:Message) => {
+            console.log("New Message Received:", data);
+
+            //Add new message directly to the list safetly
+            setMessages((prevMessages) => [...prevMessages,data]);
+
+            //scroll to bottom
+            setTimeout(() => flatListRef.current?.scrollToEnd({animated:true}),100);
+            
+        });
+
+        //load initial messages from DB only once
         fetchMessages();
 
-        //auto refresh every 2 sec
-        const interval = setInterval(fetchMessages,2000);
-        return () => clearInterval(interval);
+        //CLEANUP: disconnect socket when leaving the screen
+        return() => {
+            socketRef.current?.disconnect();
+        };
     },[]);
 
     const fetchMessages = async() => {
         try{
             //Fetch messages ONLY between me and this friend
-            const response = await fetch(`https://raaibar.onrender.com/messages/${myName}/${friendName}`);
+            const response = await fetch(`${SERVER_URL}/messages/${myName}/${friendName}`);
             const data = await response.json();
             setMessages(data);
             setLoading(false);
@@ -47,22 +73,31 @@ const ChatScreen = ({navigation,route}:any) => {
     // Function to handle sending a message (Connected to server)
     const sendMessage = async () => {
         if(inputText.trim()){
+            const messageData = {
+                sender: myName,
+                receiver: friendName,
+                text: inputText,
+                time: new Date().toLocaleTimeString([],{hour: '2-digit' , minute: '2-digit'}),
+            };
+
             //update UI by fetchHistory() 
             try{
-                await fetch('https://raaibar.onrender.com/messages',{
+                //save to MongoDB (persistent storage)
+                await fetch(`${SERVER_URL}/messages`,{
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        sender: myName,
-                        receiver: friendName,
-                        text: inputText,
-                    }),
+                    body: JSON.stringify(messageData),
                 });
 
+
+                //emit to socket(real time update)
+                // we send this to the server  and the server sends it back to us via 'receive_message' route
+                //this ensures both ME and MY FRIEND see it instantly
+                socketRef.current?.emit("send_message",messageData);
+
                 setInputText('');
-                fetchMessages(); // force refresh messages
             }
             catch(error){
                 console.error("Failed to send");
@@ -105,7 +140,7 @@ const ChatScreen = ({navigation,route}:any) => {
                     ref={flatListRef}
                     data={messages}
                     renderItem={renderMessage}
-                    keyExtractor={item => item._id}
+                    keyExtractor={(item,index) => item._id || index.toString()}
                     contentContainerStyle={styles.listContent}
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd({animated:true})}
                 />
