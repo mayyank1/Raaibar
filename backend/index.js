@@ -2,9 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const http = require('http');
+const {Server} = require("socket.io");
 
 const app = express();
 const PORT = 3000; // The port where the server lives
+
+//SOCKET.IO setup
+const server = http.createServer(app); //wrap express in HTTP server
+const io = new Server(server , {
+  cors: {
+    origin: "*", //Allow all connections (important for mobile)
+    methods: ["GET" , "POST"],
+  }
+});
 
 // Middleware (Security & Data Parsing)
 app.use(cors());
@@ -225,6 +236,7 @@ app.post('/login', async(req, res) => {
 // MESSAGES ROUTES
 // ---------------------------------------------------
 
+
 //GET PRIVATE MESSAGES(from Database)
 app.get('/messages/:user1/:user2',async(req,res)=>{
   const {user1,user2} = req.params;
@@ -252,35 +264,35 @@ app.get('/messages/:user1/:user2',async(req,res)=>{
 // POST MESSAGES Route(Saves messages to Database)
 app.post('/messages',async (req,res)=>{
   const {sender,receiver,text} = req.body;
-
+  
   console.log(`Message: ${sender} -> ${receiver}: ${text}`);
-
+  
   try{
-
-      // Get readable time (e.g., "10:30 PM")
-      const readableTime = new Date().toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-      });
-
-      // Create new message object
-      const newMessage = new Message({
-        sender: sender,
-        receiver: receiver,
-        text: text,
-        time: readableTime, //store readable time
-        //We don't need to set createdAt, mongoose will handle it
-      });
     
-      // save it to database
-      await newMessage.save();
+    // Get readable time (e.g., "10:30 PM")
+    const readableTime = new Date().toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
     
-      console.log(`SUCCESS: Message saved to DB: ${text}`);
+    // Create new message object
+    const newMessage = new Message({
+      sender: sender,
+      receiver: receiver,
+      text: text,
+      time: readableTime, //store readable time
+      //We don't need to set createdAt, mongoose will handle it
+    });
     
-      res.status(201).json({
-        success: true,
-        message: "Message saved to MongoDB!"
-      });
+    // save it to database
+    await newMessage.save();
+    
+    console.log(`SUCCESS: Message saved to DB: ${text}`);
+    
+    res.status(201).json({
+      success: true,
+      message: "Message saved to MongoDB!"
+    });
   }
   catch(error){
     console.error("DATABASE ERROR:", error); //log the error if MongoDB operation fails
@@ -294,8 +306,41 @@ app.post('/messages',async (req,res)=>{
 // END MESSAGES ROUTES
 // ---------------------------------------------------
 
+// ---------------------------------------------------
+// SOCKET.IO REAL-TIME LOGIC 
+// ---------------------------------------------------
+
+io.on('connection' , (socket) => {
+  console.log('User connected' , socket.id);
+
+  //Join a specific "Room" (User's own ID)
+  socket.on('join_room' , (username) => {
+    socket.join(username);
+    console.log(`User ${username} joined their personal room`);
+  });
+
+  //Sending a message
+  socket.on("send_message" , (data) => {
+    //data -> {sender,receiver,text,time}
+    console.log("Socket Message:", data);
+
+    //send to the RECEIVER's room (so only they can see it)
+    io.to(data.receiver).emit('receive_message' , data);
+
+    //also send back to SENDER(so their UI updates instantly)
+    io.to(data.sender).emit('receive_message',data);
+  });
+  
+  socket.on('disconnect' , () => {
+    console.log('User Disconnected' , socket.id);
+  });
+});
+
+// ---------------------------------------------------
+// END SOCKET LOGIC
+// ---------------------------------------------------
 
 // Start the Server
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
