@@ -1,3 +1,5 @@
+require('dotenv').config(); //for mongoURI
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,8 +7,9 @@ const mongoose = require('mongoose');
 const http = require('http');
 const {Server} = require("socket.io");
 
+
 const app = express();
-const PORT = 3000; // The port where the server lives
+const PORT = process.env.PORT || 3000; // The port where the server lives
 
 //SOCKET.IO setup
 const server = http.createServer(app); //wrap express in HTTP server
@@ -22,8 +25,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Connect to MongoDB
-const mongoURI = "mongodb+srv://mayyank:Bholebaba123@cluster.lzihkny.mongodb.net/?appName=Cluster"
-mongoose.connect(mongoURI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected Successfully'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 

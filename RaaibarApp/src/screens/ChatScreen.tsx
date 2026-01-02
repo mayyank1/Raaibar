@@ -1,6 +1,7 @@
 import React , {useEffect, useRef, useState} from 'react';
 import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , KeyboardAvoidingView , Platform, Alert , ActivityIndicator} from 'react-native';
 import {io , Socket} from "socket.io-client"
+import { SERVER_URL } from '../config';
 
 interface Message {
     _id?: string; // Change 'id' to '_id' (MongoDB format) and ? as new socket messages won't have _id instantly
@@ -24,8 +25,6 @@ const ChatScreen = ({navigation,route}:any) => {
     //Auto-scroll to bottom when new message arrives
     const flatListRef = useRef<FlatList>(null);
 
-    //RENDER URL
-    const SERVER_URL = "https://raaibar.onrender.com";
 
     //fetch message history on load(and every 2 sec to see new messages)
     useEffect(() => {

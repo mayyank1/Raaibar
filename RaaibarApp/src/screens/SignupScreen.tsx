@@ -1,5 +1,6 @@
 import React, {use, useState} from "react";
 import {View , Text, TextInput, TouchableOpacity, StyleSheet, Alert} from "react-native";
+import { SERVER_URL } from "../config";
 
 const SignupScreen = ({navigation}:any) => {
     const [username, setUsername] = useState("");
@@ -14,7 +15,7 @@ const SignupScreen = ({navigation}:any) => {
 
         try{
             //connecting to the signup route of the backend
-            const response = await fetch("https://raaibar.onrender.com/signup",{
+            const response = await fetch(`${SERVER_URL}/signup`,{
                 method: "POST",
                 headers: {
                     "Content-Type" : 'application/json'

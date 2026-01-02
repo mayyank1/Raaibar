@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {View , Text , StyleSheet , TextInput, TouchableOpacity, Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SERVER_URL } from '../config';
 
 const LoginScreen = ({ navigation }: any) => {
     const [username , setUsername] = useState('');
@@ -16,7 +17,7 @@ const LoginScreen = ({ navigation }: any) => {
         // Send login request to server(Authentication logic)
         try{
 
-            const response = await fetch('https://raaibar.onrender.com/login',{
+            const response = await fetch(`${SERVER_URL}/login`,{
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

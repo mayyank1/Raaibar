@@ -1,6 +1,7 @@
 import React, {use, useEffect,useState} from "react";
 import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator ,Button,Alert , TextInput} from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SERVER_URL } from "../config";
 
 
 const HomeScreen = ({navigation,route}:any) => {
@@ -22,12 +23,12 @@ const HomeScreen = ({navigation,route}:any) => {
 
       try{
         //Get My Friends
-        const friendsRes = await fetch(`https://raaibar.onrender.com/my-friends/${username}`);
+        const friendsRes = await fetch(`${SERVER_URL}/my-friends/${username}`);
         const friendsData = await friendsRes.json();
         setFriends(friendsData);
   
         //Get My Friend Requests
-        const reqRes = await fetch(`https://raaibar.onrender.com/my-requests/${username}`);
+        const reqRes = await fetch(`${SERVER_URL}/my-requests/${username}`);
         const reqData = await reqRes.json();
         setRequests(reqData);
       }
@@ -44,7 +45,7 @@ const HomeScreen = ({navigation,route}:any) => {
       }
 
       try{
-        const response = await fetch('https://raaibar.onrender.com/send-request',{
+        const response = await fetch(`${SERVER_URL}/send-request`,{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -67,7 +68,7 @@ const HomeScreen = ({navigation,route}:any) => {
 
     const acceptRequest = async(friendToAccept: string) => {
       try{
-        await fetch('https://raaibar.onrender.com/accept-request',{
+        await fetch(`${SERVER_URL}/accept-request`,{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
