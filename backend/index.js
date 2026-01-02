@@ -336,6 +336,18 @@ io.on('connection' , (socket) => {
   socket.on('disconnect' , () => {
     console.log('User Disconnected' , socket.id);
   });
+
+  //---TYPING INDICATORS---
+  socket.on("typing",(data) => {
+    //data = {sender , receiver}
+    io.to(data.receiver).emit("display_typing" , data);
+  });
+
+  socket.on("stop_typing" , (data) => {
+    //data = {sender , receiver}
+    io.to(data.receiver).emit("hide_typing",data);
+  });
+  //---END---
 });
 
 // ---------------------------------------------------

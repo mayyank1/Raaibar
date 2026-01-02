@@ -3,6 +3,8 @@ import {View , Text , TextInput , TouchableOpacity , FlatList , StyleSheet , Key
 import {io , Socket} from "socket.io-client"
 import { SERVER_URL } from '../config';
 
+
+
 interface Message {
     _id?: string; // Change 'id' to '_id' (MongoDB format) and ? as new socket messages won't have _id instantly
     sender: string;
@@ -14,34 +16,34 @@ interface Message {
 
 //Helper: Generate a consistent color based on the username
 const getAvatarColor = (name:string) => {
-  const colors = [
-    '#F44336', 
-    '#E91E63', 
-    '#9C27B0', 
-    '#673AB7', 
-    '#3F51B5', 
-    '#2196F3', 
-    '#009688', 
-    '#FF5722', 
-    '#795548', 
-    '#607D8B'
-  ];
-
-  let hash = 0;
-
-  for(let i = 0;i<name.length;i++){
-    hash = name.charCodeAt(i) + ((hash<<5) - hash);
-  }
-
-  const index = Math.abs(hash%colors.length);
-
-  return colors[index];
+    const colors = [
+        '#F44336', 
+        '#E91E63', 
+        '#9C27B0', 
+        '#673AB7', 
+        '#3F51B5', 
+        '#2196F3', 
+        '#009688', 
+        '#FF5722', 
+        '#795548', 
+        '#607D8B'
+    ];
+    
+    let hash = 0;
+    
+    for(let i = 0;i<name.length;i++){
+        hash = name.charCodeAt(i) + ((hash<<5) - hash);
+    }
+    
+    const index = Math.abs(hash%colors.length);
+    
+    return colors[index];
 };
 
 //Helper: Format date for seperators
 const getDateLabel = (dataString?: string) => {
     if(!dataString) return null;
-
+    
     const messageDate = new Date(dataString);
     const today = new Date();
     const yesterday = new Date();
@@ -51,25 +53,31 @@ const getDateLabel = (dataString?: string) => {
     if(messageDate.toDateString() === today.toDateString()){
         return "Today";
     }
-
+    
     //check if yesterday
     if(messageDate.toDateString() === yesterday.toDateString()){
         return "Yesterday";
     }
-
+    
     //otherwise return specific date like "12/05/2026"
     return messageDate.toLocaleDateString();
 }
 
 const ChatScreen = ({navigation,route}:any) => {
+    
+    
     // get the names passed from HomeScreen
     const {myName , friendName} = route.params;
-
+    
     //start with empty messages(we will fetch messages from server)
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText,setInputText] = useState('');
     const [loading,setLoading] = useState(true);
-
+    
+    //state for Typing indicator
+    const [isFriendTyping , setIsFriendTyping] = useState(false);
+    const typingTimeoutRef = useRef<any>(null); //to stop the indicator automatically
+    
     //ref to hold the socket object so it persists
     const socketRef = useRef<Socket | null>(null);
     //Auto-scroll to bottom when new message arrives
@@ -84,7 +92,7 @@ const ChatScreen = ({navigation,route}:any) => {
         //join my own "ROOM" so i can receive message
         socketRef.current.emit("join_room",myName);
 
-        //listen for incomming messages
+        //LISTERNER: for incomming messages
         socketRef.current.on("receive_message" , (data:Message) => {
             console.log("New Message Received:", data);
 
@@ -94,6 +102,27 @@ const ChatScreen = ({navigation,route}:any) => {
             //scroll to bottom
             setTimeout(() => flatListRef.current?.scrollToEnd({animated:true}),100);
             
+        });
+
+        //LISTENER: Friend started typing
+        socketRef.current.on("display_typing" , (data:any) => {
+            if(data.sender === friendName){
+                setIsFriendTyping(true);
+
+                //Safety: hide it automatically after 3 sec(in case we miss the 'stop' signal)
+                if(typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => {
+                    setIsFriendTyping(false);
+                },3000);
+            }
+        });
+
+        //LISTENER: Friend stopped typing
+        socketRef.current.on("hide_typing" , (data:any) => {
+            if(data.sender === friendName){
+                setIsFriendTyping(false);
+                if(typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            }
         });
 
         //load initial messages from DB only once
@@ -205,6 +234,28 @@ const ChatScreen = ({navigation,route}:any) => {
         );
     };
 
+
+    //ref to track if we already sent the signal (for optimaization)
+    const isTypingRef = useRef(false);
+
+    const handleInputChange = (text: string) => {
+        setInputText(text);
+
+        //Emit "Typing" signal
+        if(text.length > 0){
+            //Only emit if we haven't already said we are typing(only one time signal)
+            if(!isTypingRef.current){
+                socketRef.current?.emit("typing" , {sender: myName,receiver: friendName});
+                isTypingRef.current = true;
+            }
+        }
+        else{
+            //if text is empty, send "Stop" and reset flag
+            socketRef.current?.emit("stop_typing",{sender: myName,receiver: friendName});
+            isTypingRef.current = false;
+        }
+    };
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -219,6 +270,11 @@ const ChatScreen = ({navigation,route}:any) => {
                     <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode='tail'>
                         {friendName}
                     </Text>
+
+                    {/* TYPING INDICATOR */}
+                    {isFriendTyping && (
+                        <Text style={styles.typingText}>typing...</Text>
+                    )}
                 </View>
             </View>
 
@@ -242,7 +298,7 @@ const ChatScreen = ({navigation,route}:any) => {
                     style={styles.input}
                     placeholder="Type a message..."
                     value={inputText}
-                    onChangeText={setInputText}
+                    onChangeText={handleInputChange}
                 />
                 <TouchableOpacity 
                     onPress={sendMessage}
@@ -386,6 +442,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius:10,
         overflow: 'hidden', // Ensures background fits rounded corners
+    },
+    typingText: {
+        color: '#E0F2F1',
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: 2,
     }
 });
 
