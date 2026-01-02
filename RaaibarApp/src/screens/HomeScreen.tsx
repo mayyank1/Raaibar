@@ -3,6 +3,32 @@ import {View , Text , StyleSheet , TouchableOpacity ,FlatList ,ActivityIndicator
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SERVER_URL } from "../config";
 
+//Helper: Generate a consistent color based on the username
+const getAvatarColor = (name:string) => {
+  const colors = [
+    '#F44336', 
+    '#E91E63', 
+    '#9C27B0', 
+    '#673AB7', 
+    '#3F51B5', 
+    '#2196F3', 
+    '#009688', 
+    '#FF5722', 
+    '#795548', 
+    '#607D8B'
+  ];
+
+  let hash = 0;
+
+  for(let i = 0;i<name.length;i++){
+    hash = name.charCodeAt(i) + ((hash<<5) - hash);
+  }
+
+  const index = Math.abs(hash%colors.length);
+
+  return colors[index];
+};
+
 
 const HomeScreen = ({navigation,route}:any) => {
     //Get the username of the person logged in
@@ -98,9 +124,21 @@ const HomeScreen = ({navigation,route}:any) => {
       <TouchableOpacity
         style= {styles.card}
         onPress={()=> navigation.navigate('Chat',{myName:username,friendName: item})}
+        activeOpacity={0.7}
       >
-        <View style={styles.avatar}><Text style={styles.avatarText}>{item[0].toUpperCase()}</Text></View>
-        <Text style={styles.friendName}>{item}</Text>
+        {/* AVATAR */}
+        <View style={[styles.avatar , {backgroundColor:getAvatarColor(item)}]}>
+          <Text style={styles.avatarText}>{item.charAt(0).toUpperCase()}</Text>
+        </View>
+
+        {/* TEXT INFO */}
+        <View style={styles.chatInfo}>
+          <Text style={styles.friendName}>{item}</Text>
+          <Text style={styles.lastMessage}>Tap to chat</Text>
+        </View>
+
+        {/* ARROW ICON */}
+        <Text style={styles.chevron}>›</Text>
       </TouchableOpacity>
     );
 
@@ -215,26 +253,46 @@ const styles = StyleSheet.create({
       alignItems: 'center', 
       backgroundColor: 'white', 
       padding: 15, 
-      borderRadius: 10, 
-      marginBottom: 10, 
-      elevation: 2 
+      marginHorizontal: 15, 
+      marginBottom: 10,
+      borderRadius: 12, 
+      elevation: 2, 
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
     },
-    friendName: { 
-      fontSize: 18, 
-      fontWeight: 'bold', 
-      marginLeft: 15 },
     avatar: { 
-      width: 40, 
-      height: 40, 
-      borderRadius: 20, 
-      backgroundColor: 'teal', 
+      width: 50, 
+      height: 50, 
+      borderRadius: 25, 
       justifyContent: 'center', 
-      alignItems: 'center' 
+      alignItems: 'center',
+      marginRight: 15,
     },
     avatarText: { 
       color: 'white', 
       fontWeight: 'bold', 
-      fontSize: 18 
+      fontSize: 20 
+    },
+    chatInfo: {
+        flex: 1, 
+    },
+    friendName: { 
+      fontSize: 16, 
+      fontWeight: '700', 
+      color: '#333',
+      marginBottom: 2,
+    },
+    lastMessage: {
+        fontSize: 14,
+        color: '#888',
+    },
+    chevron: {
+        fontSize: 24,
+        color: '#ccc',
+        fontWeight: 'bold',
+        marginBottom: 2
     },
     requestCard: { 
       flexDirection: 'row', 

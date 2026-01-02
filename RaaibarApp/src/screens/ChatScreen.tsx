@@ -11,6 +11,32 @@ interface Message {
     time: string;
 }
 
+//Helper: Generate a consistent color based on the username
+const getAvatarColor = (name:string) => {
+  const colors = [
+    '#F44336', 
+    '#E91E63', 
+    '#9C27B0', 
+    '#673AB7', 
+    '#3F51B5', 
+    '#2196F3', 
+    '#009688', 
+    '#FF5722', 
+    '#795548', 
+    '#607D8B'
+  ];
+
+  let hash = 0;
+
+  for(let i = 0;i<name.length;i++){
+    hash = name.charCodeAt(i) + ((hash<<5) - hash);
+  }
+
+  const index = Math.abs(hash%colors.length);
+
+  return colors[index];
+};
+
 const ChatScreen = ({navigation,route}:any) => {
     // get the names passed from HomeScreen
     const {myName , friendName} = route.params;
@@ -104,12 +130,34 @@ const ChatScreen = ({navigation,route}:any) => {
         }
     };
 
-    const renderMessage = ({item}:{item: Message}) => {
+
+    //RENDER MESSAGES
+    const renderMessage = ({ item }: { item: Message }) => {
         const isMyMessage = item.sender === myName;
-        return(
-            <View style={[styles.messageBubble , isMyMessage ? styles.myMessage : styles.theirMessage]}> 
-                <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
-                <Text style={styles.timeText}>{item.time}</Text>
+        
+        return (
+            <View style={[
+                styles.messageContainer, 
+                isMyMessage ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }
+            ]}>
+                
+                {/* Show Avatar ONLY for friend's messages */}
+                {!isMyMessage && (
+                    <View style={[styles.smallAvatar, { backgroundColor: getAvatarColor(friendName) }]}>
+                        <Text style={styles.smallAvatarText}>{friendName[0].toUpperCase()}</Text>
+                    </View>
+                )}
+
+                {/* The Bubble */}
+                <View style={[
+                    styles.messageBubble, 
+                    isMyMessage ? styles.myMessage : styles.theirMessage
+                ]}>
+                    <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
+                    <Text style={[styles.timeText, isMyMessage ? { color: '#E0F2F1' } : { color: '#888' }]}>
+                        {item.time}
+                    </Text>
+                </View>
             </View>
         );
     };
@@ -234,31 +282,52 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
-    messageBubble:{
-        padding:10,
-        borderRadius: 10,
-        marginBottom:10,
-        maxWidth: '80%',
+    messageContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end', // Aligns avatar to bottom
+        marginBottom: 10,
     },
-    myMessage:{
-        alignSelf: 'flex-end',
-        backgroundColor: 'teal',
+    smallAvatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+        marginBottom: 2, 
     },
-    theirMessage:{
-        alignSelf: 'flex-start',
-        backgroundColor: '#e5e5e5',
-    },
-    myText:{
+    smallAvatarText: {
         color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
-    theirText:{
-        color: 'black',
+    messageBubble: {
+        padding: 12,
+        borderRadius: 16,
+        maxWidth: '75%',
+        elevation: 1, 
     },
-    timeText: { 
-        fontSize: 10, 
-        marginTop: 5, 
-        alignSelf: 'flex-end', 
-        opacity: 0.7 
+    myMessage: {
+        backgroundColor: 'teal',
+        borderBottomRightRadius: 2, // The "Tail" effect
+        marginLeft: 50, 
+    },
+    theirMessage: {
+        backgroundColor: 'white',
+        borderBottomLeftRadius: 2, // The "Tail" effect
+    },
+    myText: {
+        color: 'white',
+        fontSize: 15,
+    },
+    theirText: {
+        color: '#333',
+        fontSize: 15,
+    },
+    timeText: {
+        fontSize: 10,
+        marginTop: 4,
+        alignSelf: 'flex-end',
     },
 });
 
