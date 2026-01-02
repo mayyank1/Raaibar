@@ -9,6 +9,7 @@ interface Message {
     receiver: string;
     text: string;
     time: string;
+    createdAt?: string;
 }
 
 //Helper: Generate a consistent color based on the username
@@ -36,6 +37,29 @@ const getAvatarColor = (name:string) => {
 
   return colors[index];
 };
+
+//Helper: Format date for seperators
+const getDateLabel = (dataString?: string) => {
+    if(!dataString) return null;
+
+    const messageDate = new Date(dataString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    //check if today
+    if(messageDate.toDateString() === today.toDateString()){
+        return "Today";
+    }
+
+    //check if yesterday
+    if(messageDate.toDateString() === yesterday.toDateString()){
+        return "Yesterday";
+    }
+
+    //otherwise return specific date like "12/05/2026"
+    return messageDate.toLocaleDateString();
+}
 
 const ChatScreen = ({navigation,route}:any) => {
     // get the names passed from HomeScreen
@@ -103,6 +127,7 @@ const ChatScreen = ({navigation,route}:any) => {
                 receiver: friendName,
                 text: inputText,
                 time: new Date().toLocaleTimeString([],{hour: '2-digit' , minute: '2-digit'}),
+                createdAt: new Date().toISOString(), //Fake the data for immediate display
             };
 
             //update UI by fetchHistory() 
@@ -132,31 +157,49 @@ const ChatScreen = ({navigation,route}:any) => {
 
 
     //RENDER MESSAGES
-    const renderMessage = ({ item }: { item: Message }) => {
+    const renderMessage = ({ item,index }: { item: Message,index: number }) => {
         const isMyMessage = item.sender === myName;
+
+        //---LOGIC FOR DATE SEPARATORS---
+        const currentLabel = getDateLabel(item.createdAt);
+        const previousLabel = index > 0 ? getDateLabel(messages[index-1].createdAt):null;
+
+        //show seperator if it's the first message OR if the date changed from the previous message
+        const showDateSeperator = index === 0 || currentLabel !== previousLabel;
+        // -----------
         
         return (
-            <View style={[
-                styles.messageContainer, 
-                isMyMessage ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }
-            ]}>
-                
-                {/* Show Avatar ONLY for friend's messages */}
-                {!isMyMessage && (
-                    <View style={[styles.smallAvatar, { backgroundColor: getAvatarColor(friendName) }]}>
-                        <Text style={styles.smallAvatarText}>{friendName[0].toUpperCase()}</Text>
+            <View>
+                {/* DATE HEADER */}
+                {showDateSeperator && currentLabel && (
+                    <View style={styles.dateSeperator}>
+                        <Text style={styles.dateLabel}>{currentLabel}</Text>
                     </View>
                 )}
+            
 
-                {/* The Bubble */}
                 <View style={[
-                    styles.messageBubble, 
-                    isMyMessage ? styles.myMessage : styles.theirMessage
+                    styles.messageContainer, 
+                    isMyMessage ? { justifyContent: 'flex-end' } : { justifyContent: 'flex-start' }
                 ]}>
-                    <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
-                    <Text style={[styles.timeText, isMyMessage ? { color: '#E0F2F1' } : { color: '#888' }]}>
-                        {item.time}
-                    </Text>
+                    
+                    {/* Show Avatar ONLY for friend's messages */}
+                    {!isMyMessage && (
+                        <View style={[styles.smallAvatar, { backgroundColor: getAvatarColor(friendName) }]}>
+                            <Text style={styles.smallAvatarText}>{friendName[0].toUpperCase()}</Text>
+                        </View>
+                    )}
+
+                    {/* The Bubble */}
+                    <View style={[
+                        styles.messageBubble, 
+                        isMyMessage ? styles.myMessage : styles.theirMessage
+                    ]}>
+                        <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
+                        <Text style={[styles.timeText, isMyMessage ? { color: '#E0F2F1' } : { color: '#888' }]}>
+                            {item.time}
+                        </Text>
+                    </View>
                 </View>
             </View>
         );
@@ -329,6 +372,21 @@ const styles = StyleSheet.create({
         marginTop: 4,
         alignSelf: 'flex-end',
     },
+    dateSeperator:{
+        alignItems: 'center',
+        marginVertical: 15,
+        marginBottom: 10,
+    },
+    dateLabel: {
+        backgroundColor: '#e1f5fe',
+        color: '#0277bd',
+        fontSize: 12,
+        fontWeight: 'bold',
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius:10,
+        overflow: 'hidden', // Ensures background fits rounded corners
+    }
 });
 
 export default ChatScreen;
