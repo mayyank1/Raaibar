@@ -12,6 +12,7 @@ interface Message {
     text: string;
     time: string;
     createdAt?: string;
+    read?: boolean; 
 }
 
 //Helper: Generate a consistent color based on the username
@@ -102,6 +103,10 @@ const ChatScreen = ({navigation,route}:any) => {
             //scroll to bottom
             setTimeout(() => flatListRef.current?.scrollToEnd({animated:true}),100);
             
+            //if the message is from my friend(not me), mark it as read it as read immediately
+            if(data.sender === friendName){
+                markMessagesAsRead();
+            }
         });
 
         //LISTENER: Friend started typing
@@ -125,8 +130,23 @@ const ChatScreen = ({navigation,route}:any) => {
             }
         });
 
+        //LISTENER: My messages were read!
+        socketRef.current.on("messages_read_update",(data:any) => {
+            //if person reading matches the person I'm chatting with
+            if(data.receiver === friendName){
+                console.log("My mesaages were read!");
+                //Update local state to turn ticks blue instantly
+                setMessages(prev => prev.map(msg => 
+                    msg.sender === myName ? {...msg,read: true} : msg
+                ));
+            }
+        });
+
         //load initial messages from DB only once
         fetchMessages();
+
+        //tell server we are reading the chat right now
+        markMessagesAsRead();
 
         //CLEANUP: disconnect socket when leaving the screen
         return() => {
@@ -225,9 +245,26 @@ const ChatScreen = ({navigation,route}:any) => {
                         isMyMessage ? styles.myMessage : styles.theirMessage
                     ]}>
                         <Text style={[isMyMessage ? styles.myText : styles.theirText]}>{item.text}</Text>
+
+                        {/* TIME + TICKS container */}
+                        <View style={styles.timeContainer}>
                         <Text style={[styles.timeText, isMyMessage ? { color: '#E0F2F1' } : { color: '#888' }]}>
                             {item.time}
                         </Text>
+
+                        {/* DYNAMIC BLUE TICK */}
+                        {isMyMessage && (
+                            <Text style={{
+                                color: item.read ? '#64b5f6' : '#E0F2F1', //Blue if read, White if not read
+                                fontSize: 10,
+                                marginLeft: 3,
+                                fontWeight: 'bold',
+                            }}>
+                                ✓✓
+                            </Text>
+                        )}
+                        </View>
+                        {/* ------------------ */}
                     </View>
                 </View>
             </View>
@@ -255,6 +292,24 @@ const ChatScreen = ({navigation,route}:any) => {
             isTypingRef.current = false;
         }
     };
+
+
+    const markMessagesAsRead = async() => {
+        try{
+            //tell database
+            await fetch(`${SERVER_URL}/messages/read`,{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({sender: friendName,receiver: myName})
+            });
+
+            //tell socket(real-time)
+            socketRef.current?.emit("mark_read",{sender:friendName , receiver: myName});
+        }
+        catch(error){
+            console.error("Error marking read: ",error);
+        }
+    }
 
     return (
         <KeyboardAvoidingView
@@ -427,6 +482,12 @@ const styles = StyleSheet.create({
         fontSize: 10,
         marginTop: 4,
         alignSelf: 'flex-end',
+    },
+    timeContainer:{
+        flexDirection:'row', 
+        alignItems:'center', 
+        justifyContent:'flex-end', 
+        marginTop:4,
     },
     dateSeperator:{
         alignItems: 'center',

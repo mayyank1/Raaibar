@@ -53,7 +53,8 @@ const messageSchema = new mongoose.Schema({
   receiver: String,
   text: String,
   time: String, //store readable time
-  createdAt: { type: Date, default: Date.now } //auto-date for sorting
+  createdAt: { type: Date, default: Date.now }, //auto-date for sorting
+  read: {type: Boolean , default: false},
 })
 
 // ---------------------------------------------------
@@ -304,6 +305,30 @@ app.post('/messages',async (req,res)=>{
   }
 });
 
+//Mark messages as read route
+app.post('/messages/read',async(req,res) => {
+  const {sender , receiver} = req.body; //'sender' is the person who SENT the message (my friend) , 'receiver' is ME(reading them)
+
+  try{
+    //update all messages sent by my friend to me,setting read = true
+    await Message.updateMany(
+      {
+        sender: sender,
+        receiver: receiver,
+        read: false,
+      },
+      {
+        $set: {read: true}
+      }
+    );
+
+    res.status(200).json({success: true});
+  }
+  catch(error){
+    res.status(500).json({error: "Failed to mark read"});
+  }
+});
+
 // ---------------------------------------------------
 // END MESSAGES ROUTES
 // ---------------------------------------------------
@@ -347,7 +372,14 @@ io.on('connection' , (socket) => {
     //data = {sender , receiver}
     io.to(data.receiver).emit("hide_typing",data);
   });
-  //---END---
+
+  //Read Receipts
+  socket.on("mark_read", (data)=>{
+    //data = {sender: 'Friend' , receiver: 'Me'}
+    //I read Friend's message. Tell Friend to turn ticks blue
+    io.to(data.sender).emit("messages_read_update",data)
+  });
+
 });
 
 // ---------------------------------------------------
